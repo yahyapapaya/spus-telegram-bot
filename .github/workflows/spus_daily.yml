@@ -1,0 +1,54 @@
+name: SPUS Daily Bot
+
+on:
+  schedule:
+    # Runs daily at 9:00 AM Singapore time (UTC+8)
+    # UTC time = 01:00
+    - cron: "0 1 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  run-spus-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run SPUS bot
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          WEIGHT_CHANGE_THRESHOLD_PCT: "0.10"
+          TOP_WEIGHT_MOVERS: "15"
+        run: python spus_update_bot.py
+
+      - name: Commit updated DB (if changed)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if [ -f spus_snapshots.db ]; then
+            git add spus_snapshots.db
+            if git diff --cached --quiet; then
+              echo "No DB changes to commit."
+            else
+              git commit -m "Update SPUS snapshot DB"
+              git push
+            fi
+          else
+            echo "spus_snapshots.db not found yet."
+          fi
