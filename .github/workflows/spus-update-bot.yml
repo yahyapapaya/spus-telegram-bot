@@ -1,0 +1,67 @@
+name: SPUS Update Bot
+
+on:
+  schedule:
+    # 9:00 AM and 9:00 PM Singapore time (SGT, UTC+8)
+    # = 01:00 and 13:00 UTC daily
+    - cron: "0 1,13 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: spus-update-bot
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Validate required secrets
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+        run: |
+          if [ -z "$TG_BOT_TOKEN" ] || [ -z "$TG_CHAT_ID" ]; then
+            echo "::error::Missing TG_BOT_TOKEN or TG_CHAT_ID repository secret. Set both in Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Run SPUS update bot
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          # Fallback defaults prevent runtime crashes when repo variables are unset/blank
+          WEIGHT_CHANGE_THRESHOLD_PCT: ${{ vars.WEIGHT_CHANGE_THRESHOLD_PCT || '0.10' }}
+          TOP_WEIGHT_MOVERS: ${{ vars.TOP_WEIGHT_MOVERS || '15' }}
+        run: python -u spus_update_bot.py
+
+      - name: Commit updated snapshot DB (if changed)
+        run: |
+          if git diff --quiet -- spus_snapshots.db; then
+            echo "No database changes to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add spus_snapshots.db
+          git commit -m "Update SPUS snapshot DB"
+          git push
