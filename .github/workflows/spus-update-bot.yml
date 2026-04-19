@@ -2,17 +2,22 @@ name: SPUS Update Bot
 
 on:
   schedule:
-    # 9:00 AM and 9:00 PM Singapore time (SGT, UTC+8)
-    # = 01:00 and 13:00 UTC daily
+    # 9:00 AM and 9:00 PM Singapore time (UTC+8)
+    # 01:00 and 13:00 UTC daily
     - cron: "0 1,13 * * *"
   workflow_dispatch:
 
 permissions:
   contents: write
 
+concurrency:
+  group: spus-update-bot
+  cancel-in-progress: false
+
 jobs:
   run-bot:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
@@ -24,9 +29,12 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
       - name: Validate required secrets
         env:
