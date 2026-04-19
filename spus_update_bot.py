@@ -46,8 +46,9 @@ def env_float(name: str, default: float) -> float:
         return default
     try:
         return float(raw)
-    except ValueError as exc:
-        raise RuntimeError(f"Invalid {name}: '{raw}' is not a float") from exc
+    except ValueError:
+        log(f"Invalid {name}='{raw}'. Falling back to default {default}.")
+        return default
 
 
 def env_int(name: str, default: int) -> int:
@@ -56,10 +57,12 @@ def env_int(name: str, default: int) -> int:
         return default
     try:
         value = int(raw)
-    except ValueError as exc:
-        raise RuntimeError(f"Invalid {name}: '{raw}' is not an integer") from exc
+    except ValueError:
+        log(f"Invalid {name}='{raw}'. Falling back to default {default}.")
+        return default
     if value <= 0:
-        raise RuntimeError(f"Invalid {name}: must be > 0")
+        log(f"Invalid {name}='{raw}'. Falling back to default {default}.")
+        return default
     return value
 
 
