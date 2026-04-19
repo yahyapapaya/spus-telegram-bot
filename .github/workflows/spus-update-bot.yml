@@ -50,8 +50,8 @@ jobs:
         env:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-          WEIGHT_CHANGE_THRESHOLD_PCT: ${{ vars.WEIGHT_CHANGE_THRESHOLD_PCT }}
-          TOP_WEIGHT_MOVERS: ${{ vars.TOP_WEIGHT_MOVERS }}
+          WEIGHT_CHANGE_THRESHOLD_PCT: ${{ vars.WEIGHT_CHANGE_THRESHOLD_PCT || '0.10' }}
+          TOP_WEIGHT_MOVERS: ${{ vars.TOP_WEIGHT_MOVERS || '15' }}
         run: python spus_update_bot.py
 
       - name: Commit updated snapshot DB (if changed)
