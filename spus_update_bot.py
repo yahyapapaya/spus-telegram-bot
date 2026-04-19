@@ -21,8 +21,29 @@ WEIGHT_COLUMN = "Weightings"      # confirmed by your screenshot
 TICKER_RE = re.compile(r"^[A-Z]{1,6}$")
 
 # Alert tuning (can be overridden by env vars)
-WEIGHT_CHANGE_THRESHOLD_PCT = float(os.getenv("WEIGHT_CHANGE_THRESHOLD_PCT", "0.10"))  # 0.10% default
-TOP_WEIGHT_MOVERS = int(os.getenv("TOP_WEIGHT_MOVERS", "15"))  # show top 15 movers
+def _env_float(name: str, default: float) -> float:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return default
+    try:
+        return float(raw)
+    except ValueError:
+        return default
+
+
+def _env_int(name: str, default: int) -> int:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+
+WEIGHT_CHANGE_THRESHOLD_PCT = _env_float("WEIGHT_CHANGE_THRESHOLD_PCT", 0.10)  # 0.10% default
+TOP_WEIGHT_MOVERS = _env_int("TOP_WEIGHT_MOVERS", 15)  # show top 15 movers
 
 # =====================
 # UTILITIES
@@ -42,7 +63,7 @@ def sha256(text: str) -> str:
 
 def utc_now_iso() -> str:
     # timezone-aware UTC timestamp (no utcnow deprecation warning)
-    return dt.datetime.now(dt.UTC).isoformat()
+    return dt.datetime.now(dt.timezone.utc).isoformat()
 
 def parse_weight_to_pct(s: str) -> Optional[float]:
     """
